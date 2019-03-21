@@ -10,32 +10,6 @@
         "artifactsBaseUrl": ""
       }
     },
-    "location": {
-      "type": "string",
-      "allowedValues": [
-        "West US",
-        "East US 2",
-        "East US",
-        "Central US",
-        "South Central US",
-        "North Central US",
-        "West Europe",
-        "North Europe",
-        "East Asia",
-        "Southeast Asia",
-        "Japan West",
-        "Japan East",
-        "Brazil South",
-        "Australia East",
-        "Australia Southeast",
-        "Central India",
-        "West India",
-        "South India"
-      ],
-      "metadata": {
-        "description": "Location for the Lustre nodes"
-      }
-    },
     "imageSku": {
       "type": "string",
       "defaultValue": "6.6",
@@ -182,18 +156,6 @@
     }
   },
   "variables": {
-    "apiVersion": "2015-06-15",
-    "storageAccountType": "Standard_LRS",
-    "saCount": 5,
-    "newStorageAccountSuffix": "[concat(parameters('vmssName'), 'sa')]",
-    "uniqueStringArray": [
-      "[concat(uniqueString(concat(resourceGroup().id, variables('newStorageAccountSuffix'), '0')))]",
-      "[concat(uniqueString(concat(resourceGroup().id, variables('newStorageAccountSuffix'), '1')))]",
-      "[concat(uniqueString(concat(resourceGroup().id, variables('newStorageAccountSuffix'), '2')))]",
-      "[concat(uniqueString(concat(resourceGroup().id, variables('newStorageAccountSuffix'), '3')))]",
-      "[concat(uniqueString(concat(resourceGroup().id, variables('newStorageAccountSuffix'), '4')))]"
-    ],
-    "vhdContainerName": "[concat(parameters('vmssName'), 'vhd')]",
     "osDiskName": "[concat(parameters('vmssName'), 'osdisk')]",
     "publicIPAddressName": "[concat(parameters('vmssName'), 'pip')]",
     "loadBalancerName": "[concat(parameters('vmssName'), 'lb')]",
@@ -202,7 +164,7 @@
     "natPoolName": "[concat(parameters('vmssName'), 'natpool')]",
     "bePoolName": "[concat(parameters('vmssName'), 'bepool')]",
     "natStartPort": 50000,
-    "natEndPort": 50099,
+    "natEndPort": 50119,
     "natBackendPort": 22,
     "nicName": "[concat(parameters('vmssName'), 'nic')]",
     "ipConfigName": "[concat(parameters('vmssName'), 'ipconfig')]",
@@ -218,7 +180,7 @@
     "imageReference": "[variables('osType')]",
     "sshKeyPath": "[concat('/home/',parameters('adminUsername'),'/.ssh/authorized_keys')]",
     "linuxConfiguration_sshPublicKey": {
-      "disablePasswordAuthentication": "true",
+      "disablePasswordAuthentication": true,
       "ssh": {
         "publicKeys": [
           {
@@ -232,28 +194,15 @@
     "vnetID": "[resourceId(parameters('existingVnetResourceGroupName'), 'Microsoft.Network/virtualNetworks', parameters('existingVnetName'))]",
     "subnetClientsID": "[concat(variables('vnetID'), '/subnets/', parameters('existingSubnetClientsName'))]",
     "scriptUrlLustreClient": "[concat(variables('baseUrl'),'lustre_client.sh')]",
-    "linuxConfiguration_password": { },
+    "linuxConfiguration_password": {},
     "linuxConfiguration": "[variables(concat('linuxConfiguration_',parameters('authenticationType')))]"
   },
   "resources": [
-    {
-      "type": "Microsoft.Storage/storageAccounts",
-      "name": "[concat(variables('uniqueStringArray')[copyIndex()], variables('newStorageAccountSuffix'))]",
-      "location": "[parameters('location')]",
-      "apiVersion": "[variables('apiVersion')]",
-      "copy": {
-        "name": "storageLoop",
-        "count": "[variables('saCount')]"
-      },
-      "properties": {
-        "accountType": "[variables('storageAccountType')]"
-      }
-    },
-    {
+      {
       "type": "Microsoft.Network/publicIPAddresses",
       "name": "[variables('publicIPAddressName')]",
-      "location": "[parameters('location')]",
-      "apiVersion": "[variables('apiVersion')]",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-03-30",
       "properties": {
         "publicIPAllocationMethod": "Dynamic",
         "dnsSettings": {
@@ -264,8 +213,8 @@
     {
       "type": "Microsoft.Network/loadBalancers",
       "name": "[variables('loadBalancerName')]",
-      "location": "[parameters('location')]",
-      "apiVersion": "[variables('apiVersion')]",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-03-30",
       "dependsOn": [
         "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIPAddressName'))]"
       ],
@@ -285,10 +234,8 @@
             "name": "[variables('bePoolName')]"
           }
         ],
-        "loadBalancingRules": [
-        ],
-        "probes": [
-        ],
+        "loadBalancingRules": [],
+        "probes": [],
         "inboundNatPools": [
           {
             "name": "[variables('natPoolName')]",
@@ -296,7 +243,7 @@
               "frontendIPConfiguration": {
                 "id": "[variables('frontEndIPConfigID')]"
               },
-              "protocol": "tcp",
+              "protocol": "Tcp",
               "frontendPortRangeStart": "[variables('natStartPort')]",
               "frontendPortRangeEnd": "[variables('natEndPort')]",
               "backendPort": "[variables('natBackendPort')]"
@@ -308,14 +255,9 @@
     {
       "type": "Microsoft.Compute/virtualMachineScaleSets",
       "name": "[parameters('vmssName')]",
-      "location": "[parameters('location')]",
-      "apiVersion": "[variables('apiVersion')]",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2017-03-30",
       "dependsOn": [
-        "[concat('Microsoft.Storage/storageAccounts/', variables('uniqueStringArray')[0], variables('newStorageAccountSuffix'))]",
-        "[concat('Microsoft.Storage/storageAccounts/', variables('uniqueStringArray')[1], variables('newStorageAccountSuffix'))]",
-        "[concat('Microsoft.Storage/storageAccounts/', variables('uniqueStringArray')[2], variables('newStorageAccountSuffix'))]",
-        "[concat('Microsoft.Storage/storageAccounts/', variables('uniqueStringArray')[3], variables('newStorageAccountSuffix'))]",
-        "[concat('Microsoft.Storage/storageAccounts/', variables('uniqueStringArray')[4], variables('newStorageAccountSuffix'))]",
         "[concat('Microsoft.Network/loadBalancers/', variables('loadBalancerName'))]"
       ],
       "sku": {
@@ -330,13 +272,6 @@
         "virtualMachineProfile": {
           "storageProfile": {
             "osDisk": {
-              "vhdContainers": [
-                "[concat('https://', variables('uniqueStringArray')[0], variables('newStorageAccountSuffix'), '.blob.core.windows.net/', variables('vhdContainerName'))]",
-                "[concat('https://', variables('uniqueStringArray')[1], variables('newStorageAccountSuffix'), '.blob.core.windows.net/', variables('vhdContainerName'))]",
-                "[concat('https://', variables('uniqueStringArray')[2], variables('newStorageAccountSuffix'), '.blob.core.windows.net/', variables('vhdContainerName'))]",
-                "[concat('https://', variables('uniqueStringArray')[3], variables('newStorageAccountSuffix'), '.blob.core.windows.net/', variables('vhdContainerName'))]",
-                "[concat('https://', variables('uniqueStringArray')[4], variables('newStorageAccountSuffix'), '.blob.core.windows.net/', variables('vhdContainerName'))]"
-              ],
               "name": "[variables('osDiskName')]",
               "caching": "ReadOnly",
               "createOption": "FromImage"
@@ -354,7 +289,7 @@
               {
                 "name": "[variables('nicName')]",
                 "properties": {
-                  "primary": "true",
+                  "primary": true,
                   "ipConfigurations": [
                     {
                       "name": "[variables('ipConfigName')]",
@@ -384,9 +319,9 @@
               {
                 "name": "lustre_client",
                 "properties": {
-                  "publisher": "Microsoft.OSTCExtensions",
-                  "type": "CustomScriptForLinux",
-                  "typeHandlerVersion": "1.3",
+                  "publisher": "Microsoft.Azure.Extensions",
+                  "type": "CustomScript",
+                  "typeHandlerVersion": "2.0",
                   "autoUpgradeMinorVersion": true,
                   "settings": {
                     "fileUris": [
@@ -398,17 +333,15 @@
               }
             ]
           }
-        }
+        },
+        "overprovision": true
       }
     }
   ],
   "outputs": {
     "fqdn": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName'))).dnsSettings.fqdn]",
-      "metadata": {
-        "description": "Fully qualified domain name of the public IP address for SSH via public ports 50000 through 50099"
-      }
+      "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName'))).dnsSettings.fqdn]"
     }
   }
 }

@@ -40,7 +40,7 @@
       }
     },
     "domainPassword": {
-      "type": "string",
+      "type": "securestring",
       "metadata": {
         "description": "Password of the account on the domain"
       }
@@ -49,7 +49,7 @@
       "type": "string",
       "defaultValue": "",
       "metadata": {
-        "description": "Specifies an organizational unit (OU) for the domain account. Enter the full distinguished name of the OU in quotation marks. Example: 'OU=testOU; DC=domain; DC=Domain; DC=com'"
+        "description": "Specifies an organizational unit (OU) for the domain account. Enter the full distinguished name of the OU in quotation marks. Example: \"OU=testOU; DC=domain; DC=Domain; DC=com\""
       }
     },
     "domainJoinOptions": {
@@ -62,7 +62,7 @@
     "vmAdminUsername": {
       "type": "string",
       "metadata": {
-        "description": "The name of the administrator of the new VM and the domain. Exclusion list: 'admin','administrator'"
+        "description": "The name of the administrator of the new VM and the domain. Exclusion list: 'admin','administrator"
       }
     },
     "vmAdminPassword": {
@@ -70,26 +70,30 @@
       "metadata": {
         "description": "The password for the administrator account of the new VM and the domain"
       }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for all resources."
+      }
     }
   },
   "variables": {
-    "storageAccountName": "[concat(uniquestring(resourceGroup().id), 'domainjoin')]",
+    "storageAccountName": "[concat(uniquestring(resourceGroup().id, deployment().name))]",
     "imagePublisher": "MicrosoftWindowsServer",
     "imageOffer": "WindowsServer",
-    "windowsOSVersion": "2012-R2-Datacenter",
-    "vmName": "domainJoinedVM",
-    "apiVersion": "2015-06-15",
-    "nicName": "domainJoinNIC",
-    "publicIPName": "domainJoinPip",
-    "vnetID": "[resourceId(resourceGroup().name, 'Microsoft.Network/virtualNetworks', parameters('existingVNETName'))]",
-    "subnetId": "[concat(variables('vnetID'),'/subnets/', parameters('existingSubnetName'))]"
+    "windowsOSVersion": "2016-Datacenter",
+    "nicName": "[concat(parameters('dnsLabelPrefix'),'Nic')]",
+    "publicIPName": "[concat(parameters('dnsLabelPrefix'),'Pip')]",
+    "subnetId": "[resourceId(resourceGroup().name, 'Microsoft.Network/virtualNetworks/subnets', parameters('existingVNETName'), parameters('existingSubnetName'))]"
   },
   "resources": [
     {
-      "apiVersion": "[variables('apiVersion')]",
+      "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/publicIPAddresses",
       "name": "[variables('publicIPName')]",
-      "location": "[resourceGroup().location]",
+      "location": "[parameters('location')]",
       "properties": {
         "publicIPAllocationMethod": "Dynamic",
         "dnsSettings": {
@@ -98,19 +102,19 @@
       }
     },
     {
-      "apiVersion": "[variables('apiVersion')]",
+      "apiVersion": "2015-06-15",
       "type": "Microsoft.Storage/storageAccounts",
       "name": "[variables('storageAccountName')]",
-      "location": "[resourceGroup().location]",
+      "location": "[parameters('location')]",
       "properties": {
         "accountType": "Standard_LRS"
       }
     },
     {
-      "apiVersion": "[variables('apiVersion')]",
+      "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/networkInterfaces",
       "name": "[variables('nicName')]",
-      "location": "[resourceGroup().location]",
+      "location": "[parameters('location')]",
       "dependsOn": [
         "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIPName'))]"
       ],
@@ -132,10 +136,10 @@
       }
     },
     {
-      "apiVersion": "[variables('apiVersion')]",
+      "apiVersion": "2017-03-30",
       "type": "Microsoft.Compute/virtualMachines",
-      "name": "[variables('vmName')]",
-      "location": "[resourceGroup().location]",
+      "name": "[parameters('dnsLabelPrefix')]",
+      "location": "[parameters('location')]",
       "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts',variables('storageAccountName'))]",
         "[resourceId('Microsoft.Network/networkInterfaces', variables('nicName'))]"
@@ -145,7 +149,7 @@
           "vmSize": "[parameters('vmSize')]"
         },
         "osProfile": {
-          "computerName": "myVM",
+          "computerName": "[parameters('dnsLabelPrefix')]",
           "adminUsername": "[parameters('vmAdminUsername')]",
           "adminPassword": "[parameters('vmAdminPassword')]"
         },
@@ -157,19 +161,13 @@
             "version": "latest"
           },
           "osDisk": {
-            "name": "osdisk",
-            "vhd": {
-              "uri": "[concat('http://',variables('storageAccountName'),'.blob.core.windows.net/vhds/myvmosdisk.vhd')]"
-            },
+            "name": "[concat(parameters('dnsLabelPrefix'),'_OsDisk')]",
             "caching": "ReadWrite",
             "createOption": "FromImage"
           },
           "dataDisks": [
             {
-              "name": "myvm-data-disk1",
-              "vhd": {
-                "Uri": "[concat('http://',variables('storageAccountName'),'.blob.core.windows.net/vhds/myvm-data-disk1.vhd')]"
-              },
+              "name": "[concat(parameters('dnsLabelPrefix'),'_dataDisk1')]",
               "caching": "None",
               "createOption": "Empty",
               "diskSizeGB": "1000",
@@ -186,24 +184,25 @@
         },
         "diagnosticsProfile": {
           "bootDiagnostics": {
-            "enabled": "true",
-            "storageUri": "[concat('http://',variables('storageAccountName'),'.blob.core.windows.net')]"
+            "enabled": true,
+            "storageUri": "[reference(concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName')), '2015-06-15').primaryEndpoints.blob]"
           }
         }
       }
     },
     {
-      "apiVersion": "[variables('apiVersion')]",
+      "apiVersion": "2015-06-15",
       "type": "Microsoft.Compute/virtualMachines/extensions",
-      "name": "[concat(variables('vmName'),'/joindomain')]",
-      "location": "[resourceGroup().location]",
+      "name": "[concat(parameters('dnsLabelPrefix'),'/joindomain')]",
+      "location": "[parameters('location')]",
       "dependsOn": [
-        "[concat('Microsoft.Compute/virtualMachines/', variables('vmName'))]"
+        "[concat('Microsoft.Compute/virtualMachines/', parameters('dnsLabelPrefix'))]"
       ],
       "properties": {
         "publisher": "Microsoft.Compute",
         "type": "JsonADDomainExtension",
-        "typeHandlerVersion": "1.0",
+        "typeHandlerVersion": "1.3",
+        "autoUpgradeMinorVersion": true,
         "settings": {
           "Name": "[parameters('domainToJoin')]",
           "OUPath": "[parameters('ouPath')]",
@@ -211,7 +210,7 @@
           "Restart": "true",
           "Options": "[parameters('domainJoinOptions')]"
         },
-        "protectedsettings": {
+        "protectedSettings": {
           "Password": "[parameters('domainPassword')]"
         }
       }

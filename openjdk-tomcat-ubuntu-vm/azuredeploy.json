@@ -5,6 +5,9 @@
     "javaPackageName": {
       "type": "string",
       "defaultValue": "openjdk-7-jdk",
+      "metadata": {
+        "description": "java Package Name"
+      },
       "allowedValues": [
         "openjdk-6-jdk",
         "openjdk-7-jdk",
@@ -14,25 +17,14 @@
     "tomcatPackageName": {
       "type": "string",
       "defaultValue": "tomcat7",
+      "metadata": {
+        "description": "tomcat Package Name"
+      },
       "allowedValues": [
         "tomcat6",
         "tomcat7",
         "tomcat8"
       ]
-    },
-    "location": {
-      "type": "string",
-      "defaultValue": "West US",
-      "allowedValues": [
-        "East US",
-        "West US",
-        "West Europe",
-        "East Asia",
-        "South East Asia"
-      ],
-      "metadata": {
-        "description": "Deployment location"
-      }
     },
     "newStorageAccountName": {
       "type": "string",
@@ -40,11 +32,17 @@
         "description": "Name of the Storage Account"
       }
     },
-    "adminUserName": {
-      "type": "string"
+    "adminUsername": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the Administrator"
+      }
     },
     "adminPassword": {
-      "type": "securestring"
+      "type": "securestring",
+      "metadata": {
+        "description": "Administrator Password"
+      }
     },
     "imagePublisher": {
       "type": "string",
@@ -62,13 +60,23 @@
     },
     "imageSKU": {
       "type": "string",
-      "defaultValue": "14.04.2-LTS",
+      "defaultValue": "14.04.5-LTS",
       "metadata": {
         "description": "Image SKU"
       }
     },
     "vmDnsName": {
-      "type": "string"
+      "type": "string",
+      "metadata": {
+        "description": "VM DNS Name"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for all resources."
+      }
     }
   },
   "variables": {
@@ -156,7 +164,7 @@
       }
     },
     {
-      "apiVersion": "2015-05-01-preview",
+      "apiVersion": "2017-03-30",
       "type": "Microsoft.Compute/virtualMachines",
       "name": "[variables('vmName')]",
       "location": "[parameters('location')]",
@@ -181,10 +189,7 @@
             "version": "latest"
           },
           "osDisk": {
-            "name": "osdisk1",
-            "vhd": {
-              "uri": "[concat('http://',parameters('newStorageAccountName'),'.blob.core.windows.net/',variables('vmStorageAccountContainerName'),'/','osdisk1spec.vhd')]"
-            },
+            "name":"[concat(variables('vmName'),'_OSDisk')]",
             "caching": "ReadWrite",
             "createOption": "FromImage"
           }
@@ -207,9 +212,10 @@
         "[concat('Microsoft.Compute/virtualMachines/', variables('vmName'))]"
       ],
       "properties": {
-        "publisher": "Microsoft.OSTCExtensions",
-        "type": "CustomScriptForLinux",
-        "typeHandlerVersion": "1.2",
+        "publisher": "Microsoft.Azure.Extensions",
+        "type": "CustomScript",
+        "typeHandlerVersion": "2.0",
+        "autoUpgradeMinorVersion": true,
         "settings": {
           "fileUris": [
             "https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/openjdk-tomcat-ubuntu-vm/java-tomcat-install.sh"

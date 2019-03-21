@@ -1,272 +1,243 @@
 # Azure Resource Manager QuickStart Templates
+[![Travis](https://img.shields.io/travis/Azure/azure-quickstart-templates/master.svg?label=travis&style=flat-square)](https://travis-ci.org/Azure/azure-quickstart-templates)
 
-# Template index
-A searchable template index is maintained at https://azure.microsoft.com/en-us/documentation/templates/
+This repo contains all currently available Azure Resource Manager templates contributed by the community. A searchable template index is maintained at https://azure.microsoft.com/en-us/documentation/templates/.
 
-# Contribution guide
+The following information is relevant to get started with contributing to this repository.
 
-This is a repo that contains all the currently available Azure Resource Manager templates contributed by the community. These templates are indexed on Azure.com and available to view here http://azure.microsoft.com/en-us/documentation/templates/
++ [**Contribution guide**](/1-CONTRIBUTION-GUIDE/README.md#contribution-guide). Describes the minimal guidelines for contributing.
++ [**Best practices**](/1-CONTRIBUTION-GUIDE/best-practices.md#best-practices). Best practices for improving the quality of your template design.
++ [**Git tutorial**](/1-CONTRIBUTION-GUIDE/git-tutorial.md#git-tutorial). Step by step to get you started with Git.
++ [**Useful Tools**](/1-CONTRIBUTION-GUIDE/useful-tools.md#useful-tools). Useful resources and tools for Azure development.
 
-## Adding Your Template
+## Deploying Samples
 
-### GitHub Workflow
+You can deploy these samples directly through the Azure Portal or by using the scripts supplied in the root of the repo.
 
-We're following basic GitHub Flow. If you have ever contributed to an open source project on GitHub, you probably know it already - if you have no idea what we're talking about, check out [GitHub's official guide](https://guides.github.com/introduction/flow/). Here's a quick summary:
+To deploy a sample using the Azure Portal, click the **Deploy to Azure** button found in the README.md of each sample.
 
- * Fork the repository and clone to your local machine
- * You should already be on the default branch `master` - if not, check it out (`git checkout master`)
- * Create a new branch for your template `git checkout -b my-new-template`)
- * Write your template
- * Stage the changed files for a commit (`git add .`)
- * Commit your files with a *useful* commit message ([example](https://github.com/Azure/azure-quickstart-templates/commit/53699fed9983d4adead63d9182566dec4b8430d4)) (`git commit`)
- * Push your new branch to your GitHub Fork (`git push origin my-new-template`)
- * Visit this repository in GitHub and create a Pull Request.
+To deploy the sample via the command line (using [Azure PowerShell](https://docs.microsoft.com/en-us/powershell/azure/overview) or the [Azure CLI 1.0](https://docs.microsoft.com/en-us/azure/cli-install-nodejs)) you can use the scripts below.
 
-**For a detailed tutorial, [please check out our tutorial](../tutorial/git-tutorial.md)!**
+Simply execute the script and pass in the folder name of the sample you want to deploy.  
 
-### Azure.com
+For example:
 
+### PowerShell
+```PowerShell
+.\Deploy-AzureResourceGroup.ps1 -ResourceGroupLocation 'eastus' -ArtifactStagingDirectory '[foldername]'
+```
+
+### Bash
+Please ensure that you have [node and npm](https://docs.npmjs.com/getting-started/installing-node), [jq](https://stedolan.github.io/jq/download/) and [azure-cli](https://docs.microsoft.com/en-us/azure/cli-install-nodejs) installed.
+
+```bash
+./azure-group-deploy.sh -a [foldername] -l eastus
+```
+
+- If you see the following error: "syntax error near unexpected token `$'in\r''", run this command: 'dos2unix azure-group-deploy.sh'.
+- If you see the following error: "jq: command not found", run this command: "sudo apt install jq".
+- If you see the following error: "node: not found", install node and npm.
+- If you see the following error: "azure-group-deploy.sh is not a command", make sure you run "chmod +x azure-group-deploy.sh".
+
+## Uploading Artifacts
+If the sample has artifacts that need to be "staged" for deployment (Configuration Scripts, Nested Templates, DSC Packages) then set the upload switch on the command.
+You can optionally specify a storage account to use, if so the storage account must already exist within the subscription.  If you don't want to specify a storage account
+one will be created by the script or reused if it already exists (think of this as "temp" storage for AzureRM).
+
+### PowerShell
+```PowerShell
+.\Deploy-AzureResourceGroup.ps1 -ResourceGroupLocation 'eastus' -ArtifactStagingDirectory '201-vm-custom-script-windows' -UploadArtifacts 
+```
+
+### Bash
+```bash
+./azure-group-deploy.sh -a [foldername] -l eastus -u
+```
+
+## Contribution guide
 To make sure your template is added to Azure.com index, please follow these guidelines. Any templates that are out of compliance will be added to the **blacklist** and not be indexed on Azure.com
 
-1. Every template must be contained in its own **folder**. Name this folder something that describes what your template does. Usually this naming pattern looks like **appName-osName** or **level-platformCapability** (e.g. 101-vm-user-image)
-  * **Protip** - Try to keep the name of your template folder short so that it fits inside the Github folder name column width.
-2. The template file must be named **azuredeploy.json**
-3. There should be be a parameters file name **azuredeploy.parameters.json**.
-  * Please fill out the values for the parameters according to rules defined in the template (allowed values etc.), For parameters without rules, a simple "changeme" will do as the acomghbot only checks for sytactic correctness using the ARM Validate Template [API](https://msdn.microsoft.com/en-us/library/azure/dn790547.aspx)
-4. The template folder must host the **scripts** that are needed for successful template execution
-5. The template folder must contain a **metadata.json** file to allow the template to be indexed on [Azure.com](http://azure.microsoft.com)
-  * Guidelines on the metadata file below
-6. Include a **README.md** file that explains how the template works. No need to include the parameters that the template needs. We can render them on Azure.com from the template. Include code for buttons to "Deploy to Azure" and "Visualize" as seen in the README.md files for other templates. If you see problems with visualizing your template, please report the issue in the ArmViz GitHub project [here](https://github.com/ytechie/AzureResourceVisualizer/issues/new).
-7. Template parameters should follow **camelCasing**
-8. Try to reduce the **number of parameters** a user has to enter to deploy your template. Make things that do not need to be globally unique such as VNETs, NICs, PublicIPs, Subnets, NSGs as variables.
-  * If you must include a parameter, please include a default value as well. See the next rule for naming convention for the default values.
-9. Name **variables** using this scheme **templateScenarioResourceName** (e.g. simpleLinuxVMVNET, userRoutesNSG, elasticsearchPublicIP etc.) that describe the scenario rather. This ensures when a user browses all the resources in the Portal there aren't a bunch of resources with the same name (e.g. myVNET, myPublicIP, myNSG)
-10. **Storage account names** need to be lower case and can't contain hyphens (-) in addition to other domain name restrictions. These also need to be globally unique.
-11. **Passwords** must be passed into parameters of type `securestring`.
-    * Passwords must also be passed to customScriptExtension using the `commandToExecute` property in `protectedSettings`. This will look like below
+## Files, folders and naming conventions
+1. Every deployment template and its associated files must be contained in its own **folder**. Name this folder something that describes what your template does. Usually this naming pattern looks like **appName-osName** or **level-platformCapability** (e.g. 101-vm-user-image) 
+ + **Required** - Numbering should start at 101. 100 is reserved for things that need to be at the top.
+ + **Protip** - Try to keep the name of your template folder short so that it fits inside the Github folder name column width.
+2. Github uses ASCII for ordering files and folder. For consistent ordering **create all files and folders in lowercase**. The only **exception** to this guideline is the **README.md**, that should be in the format **UPPERCASE.lowercase**.
+3. Include a **README.md** file that explains how the template works. 
+ + Guidelines on the README.md file below.
+4. The deployment template file must be named **azuredeploy.json**.
+5. There should be a parameters file named **azuredeploy.parameters.json**. 
+ + Use defaultValues in the azuredeploy.json template whenever there is a value that will work for all users.  The parameters file, should contain only [GEN*](#parameters-file-placeholders) values for generating values for a test deployment.  Do NOT use values that require changes by the user for a successful deployment (e.g. changeme).
+6. The template folder must contain a **metadata.json** file to allow the template to be indexed on [Azure.com](http://azure.microsoft.com/). 
+ + Guidelines on the metadata.json file below.
+7. The custom scripts that are needed for successful template execution must be placed in a folder called **scripts**.
+8. Linked templates must be placed in a folder called **nested**.
+9. Images used in the README.md must be placed in a folder called **images**. 
+10. Any resources that need to be setup outside the template should be named prefixed with existing (e.g. existingVNET, existingDiagnosticsStorageAccount and provision using a [prereqs](#template-pre-requisites) template.
 
-    ```
-     "properties": {
-       "publisher": "Microsoft.OSTCExtensions",
-       "type": "CustomScriptForLinux",
-       "typeHandlerVersion": "1.4",
-       "settings": {
-       "fileUris": [
-     	   "https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/lamp-app/install_lamp.sh"
-       ]
-     },
-     "protectedSettings": {
-       "commandToExecute": "[concat('sh install_lamp.sh ', parameters('mySqlPassword'))]"
-       }
-     }
-    ```
+![alt text](/1-CONTRIBUTION-GUIDE/images/namingConvention.png "Files, folders and naming conventions")
+ 
+## README.md
 
-12. Every parameter in the template must have the **lower-case description** tag specified using the metadata property. This looks like below
+The README.md describes your deployment. A good description helps other community members to understand your deployment. The README.md uses [Github Flavored Markdown](https://guides.github.com/features/mastering-markdown/) for formatting text. If you want to add images to your README.md file, store the images in the **images** folder. Reference the images in the README.md with a relative path (e.g. `![alt text](images/namingConvention.png "Files, folders and naming conventions")`). This ensures the link will reference the target repository if the source repository is forked. A good README.md contains the following sections
 
-  ```json
-  "newStorageAccountName": {
-        "type": "string",
-        "metadata": {
-            "description": "The name of the new storage account created to store the VMs disks"
-        }
-  }
-  ```
++ Deploy to Azure button
++ Visualize button
++ Description of what the template will deploy
++ Tags, that can be used for search. Specify the tags comma separated and enclosed between two back-ticks (e.g Tags: `cluster, ha, sql`)
++ *Optional: Prerequisites
++ *Optional: Description on how to use the application
++ *Optional: Notes
 
+Do **not include** the **parameters or the variables** of the deployment script. We render this on Azure.com from the template. Specifying these in the README.md will result in **duplicate entries** on Azure.com.
 
-See the starter template [here](https://github.com/Azure/azure-quickstart-templates/tree/master/100-STARTER-TEMPLATE-with-VALIDATION) for more information on passing validation
+You can download a [**sample README.md**](/1-CONTRIBUTION-GUIDE/sample-README.md) for use in your deployment scenario. The **sample README.md** also contains the code for the **Deploy to Azure** and **Visualize** buttons, that you can use as a reference.
 
-## Best practices
+## metadata.json
 
-* It is a good practice to pass your template through a JSON linter to remove extraneous commas, parenthesis, brackets that may break the "Deploy to Azure" experience. Try http://jsonlint.com/ or a linter package for your favorite editing environment (Visual Studio Code, Atom, Sublime Text, Visual Studio etc.)
-* It's also a good idea to format your JSON for better readability. You can use a JSON formatter package for your local editor or [format online using this link](https://www.bing.com/search?q=json+formatter).
+A valid metadata.json must adhere to the following structure
 
-## metadata.json file
-
-Here are the required parameters for a valid metadata.json file
-
-To be more consistent with the Visual Studio and Gallery experience we're updating the metadata.json file structure. The new structure looks like below
-
-    {
-      "itemDisplayName": "",
-      "description": "",
-      "summary": "",
-      "githubUsername": "",
-      "dateUpdated": "<e.g. 2015-12-20>"
-    }
-
-The metadata.json file will be validated using these rules
-
+```
+{
+  "itemDisplayName": "60 char limit",
+  "description": "1000 char limit",
+  "summary": "200 char limit",
+  "githubUsername": "<e.g. bmoore-msft>",
+  "dateUpdated": "<e.g. 2015-12-20>"
+}
+```
 **itemDisplayName**
-* Cannot be more than 60 characters
++ Title of the sample
 
 **description**
-* Cannot be more than 1000 characters
-* Cannot contain HTML
-* This is used for the template description on the Azure.com index template details page
++ Cannot contain HTML This is used for the template description on the Azure.com index template details page
 
 **summary**
-* Cannot be more than 200 characters
-* This is shown for template description on the main Azure.com template index page
++ This is shown for template description on the main Azure.com template index page
 
 **githubUsername**
-* This is the username of the original template author. Please do not change this.
-* This is used to display template author and Github profile pic in the Azure.com index
++ This is the username of the original template author. Do not change this
++ This is used to display template author and Github profile pic in the Azure.com index
 
 **dateUpdated**
-* Must be in yyyy-mm-dd format.
-* The date must not be in the future to the date of the pull request
-
-## Starter template
-
-A starter template is provided [here](https://github.com/Azure/azure-quickstart-templates/tree/master/100-starter-template-with-validation) for you to follow
++ Must be in yyyy-mm-dd format.
++ The date must not be in the future to the date of the pull request
 
 ## Common errors from acomghbot
-
 acomghbot is a bot designed to enforce the above rules and check the syntactic correctness of the template using the ARM Validate Template [API](https://msdn.microsoft.com/en-us/library/azure/dn790547.aspx). Below are some of the more cryptic error messages you might receive from the bot and how to solve these issues.
 
-* This error is received when the parameters file contains a parameter that is not defined in the template.
++ This error is received when the parameters file contains a parameter that is not defined in the template.
 
-      The file azuredeploy.json is not valid. Response from ARM API: BadRequest - {"error":{"code":"InvalidTemplate","message":"Deployment template validation failed: 'The template parameters 'vmDnsName' are not valid; they are not present in the original template and can therefore not be provided at deployment time. The only supported parameters for this template are 'newStorageAccountName, adminUsername, adminPassword, dnsNameForPublicIP, windowsOSVersion, sizeOfDiskInGB'.'."}}
+ The file azuredeploy.json is not valid. Response from ARM API: BadRequest - {"error":{"code":"InvalidTemplate","message":"Deployment template validation failed: 'The template parameters 'vmDnsName' are not valid; they are not present in the original template and can therefore not be provided at deployment time. The only supported parameters for this template are 'newStorageAccountName, adminUsername, adminPassword, dnsNameForPublicIP, windowsOSVersion, sizeOfDiskInGB'.'."}}
 
-* This error is received when a parameter in the parameter file has an empty value.
++ This error is received when a parameter in the parameter file has an empty value.
 
-      The file azuredeploy.json is not valid. Response from ARM API: BadRequest - {"error":{"code":"InvalidTemplate","message":"Deployment template validation failed: 'The template resource '' at line '66' and column '6' is not valid. The name property cannot be null or empty'."}}
+ The file azuredeploy.json is not valid. Response from ARM API: BadRequest - {"error":{"code":"InvalidTemplate","message":"Deployment template validation failed: 'The template resource '' at line '66' and column '6' is not valid. The name property cannot be null or empty'."}}
 
-* This error message is received when a value entered in the parameters file is different from the allowed values defined for the parameter in the tempalte file.
++ This error message is received when a value entered in the parameters file is different from the allowed values defined for the parameter in the template file.
 
-      The file azuredeploy.json is not valid. Response from ARM API: BadRequest - {"error":{"code":"InvalidTemplate","message":"Deployment template validation failed: 'The provided value for the template parameter 'publicIPAddressType' at line '40' and column '29' is not valid.'."}}
+ The file azuredeploy.json is not valid. Response from ARM API: BadRequest - {"error":{"code":"InvalidTemplate","message":"Deployment template validation failed: 'The provided value for the template parameter 'publicIPAddressType' at line '40' and column '29' is not valid.'."}}
 
 ## Travis CI
-
-We are in the process of activating automated template validation through Travis CI. These builds can be accessed by clicking the 'Details' link at the bottom of the pull-request dialog. This process will ensure that your template conforms to all the rules mentioned above and will also deploy your template to our test azure subscription.
+We have automated template validation through Travis CI. These builds can be accessed by clicking the 'Details' link at the bottom of the pull-request dialog. This process will ensure that your template conforms to all the rules mentioned above and will also deploy your template to our test azure subscription.
 
 ### Parameters File Placeholders
-
 To ensure your template passes, special placeholder values are required when deploying a template, depending what the parameter is used for:
 
-- **GEN-UNIQUE** - use this placeholder for new storage account names, domain names for public ips and other fields that need a unique name. The value will always be alpha numeric value with a length of 18 characters.
-- **GEN-UNIQUE-[N]** - use this placeholder for new storage account names, domain names for public ips and other fields that need a unique name. The value will always be alpha numeric value with a length of `[N]`, where `[N]` can be any number from 3 to 32 inclusive.
-- **GEN-SSH-PUB-KEY** - use this placeholder if you need an SSH public key
-- **GEN-PASSWORD** - use this placeholder if you need an azure-compatible password for a VM
++ **GEN-UNIQUE[-N]** - use this for a new globally unique resource name. The value will always be alpha numeric value with a length of `[N]`, where `[N]` can be any number from 3 to 32 inclusive.  The default length when N is not specified is 18.
++ **GEN-SSH-PUB-KEY** - use this if you need an SSH public key
++ **GEN-PASSWORD** - use this  if you need an azure-compatible password for a VM
++ **GEN-GUID** - use this to generate a GUID
+
+Quickstart CI engine provides few pre-created azure components which can be used by templates for automated validation. This includes a key vault with sample SSL certificate stored, specialized and generalized Windows Server VHD's, a custom domain and SSL cert data for Azure App Service templates and more.
+
+**Virtual Network Related placeholders:**
++ **GEN-VNET-NAME** - the name of the virtual network
++ **GEN-VNET-RESOURCEGROUP-NAME** - the name of the resource group for the virtual network
++ **GEN-VNET-SUBNET1-NAME** - the name of subnet-1
+
+
+**Key Vault Related placeholders:**
++ **GEN-KEYVAULT-NAME** - the name of the keyvault
++ **GEN-KEYVAULT-RESOURCEGROUP-NAME** - the name of the resource group for the keyvault
++ **GEN-KEYVAULT-FQDN-URI** - the FQDN URI of the keyvault
++ **GEN-KEYVAULT-RESOURCE-ID** - the resource ID of the keyvault
++ **GEN-KEYVAULT-SSL-SECRET-NAME** - the name of the secret where the sample SSL cert is stored in the keyvault
++ **GEN-KEYVAULT-SSL-SECRET-URI** - the URI of the sample SSL cert stored in the test keyvault
++ **GEN-KEYVAULT-ENCRYPTION-KEY** - the name of the sample encryption key stored in keyvault, used for disk encryption
++ **GEN-KEYVAULT-ENCRYPTION-KEY-URI** - the URI of the sample encryption key
++ **GEN-KEYVAULT-ENCRYPTION-KEY-VERSION** - the secret version of the sample encryption key
++ **GEN-SF-CERT-URL** - the URL of the sample service fabric certificate stored in keyvault
++ **GEN-SF-CERT-THUMBPRINT** - the thumbprint of the sample service fabric certificate stored in keyvault
+
+
+**Existing VHD related placeholders:**
++ **GEN-SPECIALIZED-WINVHD-URI** - URI of a specialized Windows VHD stored in an existing storage account
++ **GEN-GENERALIZED-WINVHD-URI** - URI of a generalized Windows VHD stored in an existing storage account
++ **GEN-GENERALIZED-WINVHD-FILENAME** - the filename of the existing VHD
++ **GEN-DATAVHD-URI** - URI of a sample data disk VHD stored in an existing storage account
++ **GEN-VHDSTORAGEACCOUNT-NAME** - Name of storage account in which the VHD's are stored
++ **GEN-VHDRESOURCEGROUP-NAME** - Name of resource group in which the existing storage account having VHD's resides
+
+
+**Custom Domain & SSL Cert related placeholders:**
++ **GEN-CUSTOM-WEBAPP-NAME** - placeholder for the name of azure app service where you'd want to attach custom domain
++ **GEN-CUSTOM-FQDN-NAME** - sample custom domain which can be added to an App Service
++ **GEN-CUSTOM-DOMAIN-SSLCERT-THUMBPRINT** - SSL cert thumbprint for the custom domain used in the custom FQDN
++ **GEN-CUSTOM-DOMAIN-SSLCERT-PASSWORD** - Password of the sample SSL cert
++ **GEN-CUSTOM-DOMAIN-SSLCERT-PFXDATA** - PFX data for the sample SSL cert
++ **GEN-SELFSIGNED-CERT-PFXDATA** - PFX data for a sample self signed cert
++ **GEN-SELFSIGNED-CERT-CERDATA** - CER data for a sample self signed cert
++ **GEN-SELFSIGNED-CERT-PASSWORD** - password for a sample self signed cert
++ **GEN-SELFSIGNED-CERT-DNSNAME** - DNS name for a sample self signed cert
+
+
 
 Here's an example in an `azuredeploy.parameters.json` file:
 
 ```
 {
-  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
-  "contentVersion": "1.0.0.0",
-  "parameters": {
-    "newStorageAccountName":{
-      "value": "GEN-UNIQUE"
-    },
-    "location": {
-      "value": "West US"
-    },
-    "adminUsername": {
-      "value": "sedouard"
-    },
-    "sshKeyData": {
-      "value": "GEN-SSH-PUB-KEY"
-    },
-    "dnsNameForPublicIP": {
-      "value": "GEN-UNIQUE-13"
-    }
-  }
+"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+"contentVersion": "1.0.0.0",
+"parameters": {
+ "newStorageAccountName":{
+  "value": "GEN-UNIQUE"
+ },
+ "adminUsername": {
+  "value": "GEN-UNIQUE"
+ },
+ "sshKeyData": {
+  "value": "GEN-SSH-PUB-KEY"
+ },
+ "dnsNameForPublicIP": {
+  "value": "GEN-UNIQUE-13"
+ }
 }
 ```
 
-## raw.githubusercontent.com Links
+### raw.githubusercontent.com Links
 
-If you're making use of `raw.githubusercontent.com` links within your template contribution (within the template file itself or any scripts in your contribution) please ensure the following:
+If you're making use of **raw.githubusercontent.com** links within your template contribution (within the template file itself or any scripts in your contribution) please ensure the following:
 
-- Ensure any raw.githubusercontent.com links which refer to content within your pull request points to `https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/...' and **NOT** your fork.
++ Ensure any raw.githubusercontent.com links which refer to content within your pull request points to `https://raw.githubusercontent.com/Azure/azure-quickstart-templates/...` and **NOT** your fork.
++ All raw.githubusercontent.com links are placed in your azuredeploy.json and you pass the link down into your scripts & linked templates via this top-level template. This ensures we re-link correctly from your pull-request repository and branch.
++ Although pull requests with links pointing to `https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/...` may not exist in the Azure repo at the time of your pull-request, at CI run-time, those links will be converted to `https://raw.githubusercontent.com/{your_user_name}/azure-quickstart-templates/{your_branch}/...`. Be sure to check the casing of `https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/...` as this is case-sensitive.
 
-- All raw.githubusercontent.com links are placed in your `azuredeploy.json` and you pass the link down into your scripts & linked templates via this top-level template. This ensures we re-link correctly from your pull-request repository and branch.
+Note: You can find an **example** of relative linking in the [nested template section](/1-CONTRIBUTION-GUIDE/best-practices.md#nested-templates) of best practices document.
 
-### Relinking
+### Template Pre-requisites
+If your template has some pre-requisite such as existing Virtual Network or storage account, you should also submit pre-requisite template which deploys the pre-requisite components. CI automated validation engine automatically validates and deploy the pre-reqsuite template first and then deploys the main template. Following guidelines would help you in understanding how to leverage this capability. 
 
-**Please Note:** that although pull requests with links pointing to `https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/...' may not exist in the Azure repo at the time of your pull-request, at CI run-time, those links will be converted to `https://raw.githubusercontent.com/{your_user_name}/azure-quickstart-templates/{your_branch}/...'. Be sure to check the casing of `https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/...' as this is case-sensitive.
++ Create a folder named  `prereqs ` in root of your template folder, Store  pre-requisite template file, parameters file and  artifacts inside this folder.
++ Store pre-requisite template file with name  `prereq.azuredeploy.json ` and parameters files with name  `prereq.azuredeploy.parameters.json`
++  `prereq.azuredeploy.json` should deploy all required pre-existing resources by your main template and also output the values required by main template to leverage those resources. For example, if your template needs an existing VNET to be available prior to the deployment of main template, you should develop a pre-req template which deploys a VNET and outputs the VNET ID or VNET name of the virtual network created.
++ In order to use the values generated by outputs after deployment of `prereq.azuredeploy.json`, you will need to define parameter values as `GET-PREREQ-OutputName`. For example, if you generated a output with name  `vnetID` in pre-req template, in order use the value of this output in main template, enter the value of corresponding parameter in main template parameters file as `GET-PREREQ-vnetID`
++ Check out this [sample template](https://github.com/Azure/azure-quickstart-templates/tree/master/101-subnet-add-vnet-existing) to learn more 
 
-## Template Pre-requisites
+If your template has some pre-requisite such as an Azure Active Directory application or service principal, we don't support this yet. To bypass the CI workflow include a file called .ci_skip in the root of your template folder.
 
-If your template has some pre-requisite such as an Azure Active Directory application or service principal, we don't support this yet. To bypass the CI workflow include a  file called `.ci_skip` in the root of your template folder.
-
-## Diagnosing Failures
-
+### Diagnosing Failures
 If your deployment fails, check the details link of the Travis CI build, which will take you to the CI log. If the template deployment was attempted, you will get two top-level fields. The first is `parameters` which is the rendered version of your `azuredeploy.parameters.json`. This will include any replacements for `GEN-` parameters. The second is `template` which is the contents of your `azuredeploy.json`, after any `raw.githubusercontent.com` relinking. These values are the exact values you need to reproduce the error. Keep in mind, that depending on the resources allocated, it can take a few minutes for the CI system to cleanup provisioned resources.
 
-Here is an example failure log:
 
-```
-Server Error:{
-    "error": "Deployment provisioning state was not successful\n",
-    "_rgName": "qstci-26dd2ec4-bae9-12fb-fd46-fd4ce455a035",
-    "command": "azure group deployment create --resource-group (your_group_name) --template-file azuredeploy.json --parameters-file azuredeploy.parameters.json",
-    "parameters": {
-        "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
-        "contentVersion": "1.0.0.0",
-        "parameters": {
-            "clusterName": {
-                "value": "ci4391bcd700f86e84"
-            },
-            "clusterType": {
-                "value": "hadoop"
-            },
-            "clusterStorageAccountName": {
-                "value": "cifb07cf059735afba"
-            },
-            "clusterLoginUserName": {
-                "value": "admin"
-            },
-            "clusterLoginPassword": {
-                "value": "ciP$ss2e6a28784055eda8"
-            }
-        }
-    },
-    "template": {
-        "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
-        "contentVersion": "1.0.0.0",
-        "parameters": {
-            "clusterType": {
-                "type": "string",
-                "allowedValues": [
-                    "hadoop",
-                    "hbase",
-                    "storm",
-                    "spark"
-                ],
-                "metadata": {
-                    "description": "The type of the HDInsight cluster to create."
-                }
-            }
-            // more parameters here...
-        },
-        "variables": {
-            "defaultApiVersion": "2015-06-15",
-            "clusterApiVersion": "2015-03-01-preview",
-            "adlsApiVersion": "2015-10-01-preview"
-        },
-        "resources": [
-            {
-                "name": "[parameters('adlStoreName')]",
-                "type": "Microsoft.DataLakeStore/accounts",
-                "location": "East US 2",
-                "apiVersion": "[variables('adlsApiVersion')]",
-                "dependsOn": [],
-                "tags": {},
-                "properties": {
-                    "initialUser": "[parameters('servicePrincipalObjectId')]"
-                }
-            },
-            // more resources here...
-        ],
-        "outputs": {
-            "adlStoreAccount": {
-                "type": "object",
-                "value": "[reference(resourceId('Microsoft.DataLakeStore/accounts',parameters('adlStoreName')))]"
-            }
-            // more outputs here...
-        }
-    }
-}
-```
+
+This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.

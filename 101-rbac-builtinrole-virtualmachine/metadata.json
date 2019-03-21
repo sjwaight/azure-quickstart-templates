@@ -1,7 +1,11 @@
 {
-  "TemplateName": "RBAC - Grant Built In Role Access for an existing VM in a Resource Group",
-  "Description": "This template grants applicable role based access to an existing VM in a Resource Group",
-  "ShortDescription": "This template grants applicable role based access to an existing VM in a existing Resource Group",
-  "GithubUsername": "ManaviS",
-  "DateUpdated": "2015-04-10"
+  "$schema": "https://aka.ms/azure-quickstart-templates-metadata-schema#",
+  "type": "QuickStart",
+  "itemDisplayName": "RBAC - Existing VM",
+  "description": "This template grants applicable role based access to an existing VM in a Resource Group",
+  "summary": "This template grants applicable role based access to an existing VM in a existing Resource Group",
+  "githubUsername": "ManaviS",
+  "dateUpdated": "2017-09-08"
 }
+
+

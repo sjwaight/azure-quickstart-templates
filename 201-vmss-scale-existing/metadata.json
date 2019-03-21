@@ -1,7 +1,11 @@
 {
-  "itemDisplayName": "Manually scale in or out the number of VMs in a Scale Set.",
-  "description": "This template allows you to manually scale in or out the number of VMs in a Scale Set.",
-  "summary": "This template allows you to manually scale in or out the number of VMs in a Scale Set.",
+  "$schema": "https://aka.ms/azure-quickstart-templates-metadata-schema#",
+  "type": "QuickStart",
+  "itemDisplayName": "Manually change the number of VMs in a Scale Set.",
+  "description": "This template allows you to manually change the number of VMs in a Scale Set.",
+  "summary": "This template allows you to manually change the number of VMs in a Scale Set.",
   "githubUsername": "gatneil",
-  "dateUpdated": "2015-11-24"
+  "dateUpdated": "2016-12-19"
 }
+
+

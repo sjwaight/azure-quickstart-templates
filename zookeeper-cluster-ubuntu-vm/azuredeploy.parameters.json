@@ -1,27 +1,15 @@
 {
-  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "newStorageAccountName": {
-      "value": ""
-    },
-    "location": {
-      "value": ""
-    },
     "vmName": {
-      "value": ""
+      "value": "zkServer"
     },
-    "vmSize": {
-      "value": ""
-    },
-    "adminUserName": {
-      "value": ""
+    "adminUsername": {
+      "value": "GEN-UNIQUE"
     },
     "adminPassword": {
-      "value": ""
-    },
-    "scaleNumber": {
-      "value": 3
+      "value": "GEN-PASSWORD"
     }
   }
 }

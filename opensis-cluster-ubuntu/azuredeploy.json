@@ -2,33 +2,6 @@
   "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "newStorageAccountName": {
-      "type": "string",
-      "metadata": {
-        "description": "Unique DNS Name for the Storage Account where the Virtual Machine's disks will be placed."
-      }
-    },
-    "location": {
-      "type": "string",
-      "allowedValues": [
-        "East US",
-        "South Central US",
-        "West US",
-        "Central US",
-        "North Central US",
-        "East US 2",
-        "North Europe",
-        "West Europe",
-        "Southeast Asia",
-        "East Asia",
-        "Japan West",
-        "Japan East",
-        "Brazil South"
-      ],
-      "metadata": {
-        "description": "Location of resources"
-      }
-    },
     "adminUsername": {
       "type": "string",
       "metadata": {
@@ -54,18 +27,18 @@
       }
     },
     "webVMCount": {
-        "type": "int",
-        "defaultValue": 2,
-        "allowedValues": [
-          1,
-          2,
-          3,
-          4,
-          5
-        ],
-        "metadata": {
-            "description": "Number of web front end VMs to create."
-        }
+      "type": "int",
+      "defaultValue": 2,
+      "allowedValues": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "metadata": {
+        "description": "Number of web front end VMs to create."
+      }
     },
     "vmSize": {
       "type": "string",
@@ -124,12 +97,20 @@
       "metadata": {
         "description": "The size of the database backend VM."
       }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for all resources."
+      }
     }
   },
   "variables": {
+    "storageAccountName": "[concat(uniquestring(resourceGroup().id),'storage')]",
     "imagePublisher": "Canonical",
     "imageOffer": "UbuntuServer",
-    "ubuntuOSVersion": "14.04.2-LTS",
+    "ubuntuOSVersion": "14.04.5-LTS",
     "OSDiskName": "[concat(parameters('namePrefix'),'Disk')]",
     "nicName": "[concat(parameters('namePrefix'),'Nic')]",
     "addressPrefix": "10.0.0.0/16",
@@ -141,14 +122,12 @@
     "publicIPAddressName": "[concat(parameters('namePrefix'),'IP')]",
     "publicDBIPAddressName": "[concat(parameters('namePrefix'),'DBIP')]",
     "publicIPAddressID": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName'))]",
-    "publicDBIPAddressID": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicDBIPAddressName'))]",
     "publicIPAddressType": "Dynamic",
     "vmStorageAccountContainerName": "vhds",
     "vmName": "[concat(parameters('namePrefix'),'VM')]",
     "virtualNetworkName": "[concat(parameters('namePrefix'),'VNet')]",
-    "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
-    "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
-    "subnetRefDB": "[concat(variables('vnetID'),'/subnets/',variables('subnetNameDB'))]",
+    "subnetRef": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('subnetName'))]",
+    "subnetRefDB": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('subnetNameDB'))]",
     "availabilitySetName": "[concat(parameters('namePrefix'),'AvSet')]",
     "lbName": "[concat(parameters('namePrefix'),'LB')]",
     "lbID": "[resourceId('Microsoft.Network/loadBalancers',variables('lbName'))]",
@@ -156,18 +135,17 @@
     "lbProbeID": "[concat(variables('lbID'),'/probes/tcpProbe')]",
     "lbPoolID": "[concat(variables('lbID'),'/backendAddressPools/LoadBalancerBackend')]",
     "installFrontendScriptName": "install_frontend.sh",
-    "installFrontendScriptUri": "[concat('https://raw.githubusercontent.com/azure/azure-quickstart-templates/master/opensis-cluster-ubuntu/', variables('installFrontendScriptName'))]",
+    "installFrontendScriptUri": "[concat('https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/opensis-cluster-ubuntu/', variables('installFrontendScriptName'))]",
     "installFrontendCommand": "[concat('sh ', variables('installFrontendScriptName'), ' ', parameters('mySqlPassword'))]",
     "installBackendScriptName": "install_backend.sh",
-    "installBackendScriptUri": "[concat('https://raw.githubusercontent.com/azure/azure-quickstart-templates/master/opensis-cluster-ubuntu/', variables('installBackendScriptName'))]",
-    "installBackendCommand": "[concat('sh ', variables('installBackendScriptName'), ' ', parameters('mySqlPassword'))]",
-    "apiVersion": "2015-06-15"
+    "installBackendScriptUri": "[concat('https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/opensis-cluster-ubuntu/', variables('installBackendScriptName'))]",
+    "installBackendCommand": "[concat('sh ', variables('installBackendScriptName'), ' ', parameters('mySqlPassword'))]"
   },
   "resources": [
     {
-      "apiVersion": "[variables('apiVersion')]",
+      "apiVersion": "2015-06-15",
       "type": "Microsoft.Storage/storageAccounts",
-      "name": "[parameters('newStorageAccountName')]",
+      "name": "[variables('storageAccountName')]",
       "location": "[parameters('location')]",
       "properties": {
         "accountType": "[variables('storageAccountType')]"
@@ -176,12 +154,18 @@
     {
       "type": "Microsoft.Compute/availabilitySets",
       "name": "[variables('availabilitySetName')]",
-      "apiVersion": "[variables('apiVersion')]",
+      "apiVersion": "2017-12-01",
       "location": "[parameters('location')]",
-      "properties": {}
+      "sku": {
+        "name": "Aligned"
+          },
+        "properties": { 
+            "platformFaultDomainCount": 2,
+            "platformUpdateDomainCount": 5
+        }
     },
     {
-      "apiVersion": "[variables('apiVersion')]",
+      "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/publicIPAddresses",
       "name": "[variables('publicIPAddressName')]",
       "location": "[parameters('location')]",
@@ -193,7 +177,7 @@
       }
     },
     {
-      "apiVersion": "[variables('apiVersion')]",
+      "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/virtualNetworks",
       "name": "[variables('virtualNetworkName')]",
       "location": "[parameters('location')]",
@@ -220,7 +204,7 @@
       }
     },
     {
-      "apiVersion": "[variables('apiVersion')]",
+      "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/networkInterfaces",
       "name": "[concat(variables('nicName'),copyIndex())]",
       "location": "[parameters('location')]",
@@ -260,10 +244,10 @@
       }
     },
     {
-      "apiVersion": "[variables('apiVersion')]",
+      "apiVersion": "2015-06-15",
       "name": "[variables('lbName')]",
       "type": "Microsoft.Network/loadBalancers",
-      "location":"[parameters('location')]",
+      "location": "[parameters('location')]",
       "dependsOn": [
         "[concat('Microsoft.Network/publicIPAddresses/',variables('publicIPAddressName'))]"
       ],
@@ -285,120 +269,120 @@
         ],
         "inboundNatRules": [
           {
-            "name":"Web-VM0",
+            "name": "Web-VM0",
             "properties": {
               "frontendIPConfiguration": {
-                "id":"[variables('frontEndIPConfigID')]"
+                "id": "[variables('frontEndIPConfigID')]"
               },
-              "protocol": "tcp",
+              "protocol": "Tcp",
               "frontendPort": 8080,
               "backendPort": 8080,
               "enableFloatingIP": false
             }
           },
           {
-            "name":"SSH-VM0",
+            "name": "SSH-VM0",
             "properties": {
               "frontendIPConfiguration": {
-                "id":"[variables('frontEndIPConfigID')]"
+                "id": "[variables('frontEndIPConfigID')]"
               },
-              "protocol": "tcp",
+              "protocol": "Tcp",
               "frontendPort": 2200,
               "backendPort": 22,
               "enableFloatingIP": false
             }
           },
           {
-            "name":"Web-VM1",
+            "name": "Web-VM1",
             "properties": {
               "frontendIPConfiguration": {
-                "id":"[variables('frontEndIPConfigID')]"
+                "id": "[variables('frontEndIPConfigID')]"
               },
-              "protocol": "tcp",
+              "protocol": "Tcp",
               "frontendPort": 8081,
               "backendPort": 8080,
               "enableFloatingIP": false
             }
           },
           {
-            "name":"SSH-VM1",
+            "name": "SSH-VM1",
             "properties": {
               "frontendIPConfiguration": {
-                "id":"[variables('frontEndIPConfigID')]"
+                "id": "[variables('frontEndIPConfigID')]"
               },
-              "protocol": "tcp",
+              "protocol": "Tcp",
               "frontendPort": 2201,
               "backendPort": 22,
               "enableFloatingIP": false
             }
           },
           {
-            "name":"Web-VM2",
+            "name": "Web-VM2",
             "properties": {
               "frontendIPConfiguration": {
-                "id":"[variables('frontEndIPConfigID')]"
+                "id": "[variables('frontEndIPConfigID')]"
               },
-              "protocol": "tcp",
+              "protocol": "Tcp",
               "frontendPort": 8082,
               "backendPort": 8080,
               "enableFloatingIP": false
             }
           },
           {
-            "name":"SSH-VM2",
+            "name": "SSH-VM2",
             "properties": {
               "frontendIPConfiguration": {
-                "id":"[variables('frontEndIPConfigID')]"
+                "id": "[variables('frontEndIPConfigID')]"
               },
-              "protocol": "tcp",
+              "protocol": "Tcp",
               "frontendPort": 2202,
               "backendPort": 22,
               "enableFloatingIP": false
             }
           },
           {
-            "name":"Web-VM3",
+            "name": "Web-VM3",
             "properties": {
               "frontendIPConfiguration": {
-                "id":"[variables('frontEndIPConfigID')]"
+                "id": "[variables('frontEndIPConfigID')]"
               },
-              "protocol": "tcp",
+              "protocol": "Tcp",
               "frontendPort": 8083,
               "backendPort": 8080,
               "enableFloatingIP": false
             }
           },
           {
-            "name":"SSH-VM3",
+            "name": "SSH-VM3",
             "properties": {
               "frontendIPConfiguration": {
-                "id":"[variables('frontEndIPConfigID')]"
+                "id": "[variables('frontEndIPConfigID')]"
               },
-              "protocol": "tcp",
+              "protocol": "Tcp",
               "frontendPort": 2203,
               "backendPort": 22,
               "enableFloatingIP": false
             }
           },
           {
-            "name":"Web-VM4",
+            "name": "Web-VM4",
             "properties": {
               "frontendIPConfiguration": {
-                "id":"[variables('frontEndIPConfigID')]"
+                "id": "[variables('frontEndIPConfigID')]"
               },
-              "protocol": "tcp",
+              "protocol": "Tcp",
               "frontendPort": 8084,
               "backendPort": 8080,
               "enableFloatingIP": false
             }
           },
           {
-            "name":"SSH-VM4",
+            "name": "SSH-VM4",
             "properties": {
               "frontendIPConfiguration": {
-                "id":"[variables('frontEndIPConfigID')]"
+                "id": "[variables('frontEndIPConfigID')]"
               },
-              "protocol": "tcp",
+              "protocol": "Tcp",
               "frontendPort": 2204,
               "backendPort": 22,
               "enableFloatingIP": false
@@ -415,7 +399,7 @@
               "backendAddressPool": {
                 "id": "[variables('lbPoolID')]"
               },
-              "protocol": "tcp",
+              "protocol": "Tcp",
               "frontendPort": 80,
               "backendPort": 80,
               "enableFloatingIP": false,
@@ -431,7 +415,7 @@
           {
             "name": "tcpProbe",
             "properties": {
-              "protocol": "tcp",
+              "protocol": "Tcp",
               "port": 80,
               "intervalInSeconds": "5",
               "numberOfProbes": "2"
@@ -441,12 +425,12 @@
       }
     },
     {
-      "apiVersion": "[variables('apiVersion')]",
+      "apiVersion": "2017-03-30",
       "type": "Microsoft.Compute/virtualMachines",
       "name": "[concat(variables('vmName'),copyIndex())]",
       "location": "[parameters('location')]",
       "dependsOn": [
-        "[concat('Microsoft.Storage/storageAccounts/',parameters('newStorageAccountName'))]",
+        "[concat('Microsoft.Storage/storageAccounts/',variables('storageAccountName'))]",
         "[concat('Microsoft.Network/networkInterfaces/',concat(variables('nicName'),copyIndex()))]",
         "[concat('Microsoft.Compute/availabilitySets/',variables('availabilitySetName'))]"
       ],
@@ -458,7 +442,7 @@
           "vmSize": "[parameters('vmSize')]"
         },
         "osProfile": {
-          "computername": "[concat(variables('vmName'),copyIndex())]",
+          "computerName": "[concat(variables('vmName'),copyIndex())]",
           "adminUsername": "[parameters('adminUsername')]",
           "adminPassword": "[parameters('adminPassword')]"
         },
@@ -470,10 +454,7 @@
             "version": "latest"
           },
           "osDisk": {
-            "name": "osdisk",
-            "vhd": {
-              "uri": "[concat('http://',parameters('newStorageAccountName'),'.blob.core.windows.net/',variables('vmStorageAccountContainerName'),'/',concat(variables('OSDiskName'),copyIndex()),'.vhd')]"
-            },
+            "name": "[concat(variables('vmName'),copyIndex(),'_OSDisk')]",
             "caching": "ReadWrite",
             "createOption": "FromImage"
           }
@@ -494,19 +475,20 @@
     {
       "type": "Microsoft.Compute/virtualMachines/extensions",
       "name": "[concat(concat(variables('vmName'),copyIndex()),'/newuserscript')]",
-      "apiVersion": "[variables('apiVersion')]",
+      "apiVersion": "2015-06-15",
       "location": "[parameters('location')]",
       "dependsOn": [
         "[concat('Microsoft.Compute/virtualMachines/',concat(variables('vmName'),copyIndex()))]"
       ],
       "properties": {
-        "publisher": "Microsoft.OSTCExtensions",
-        "type": "CustomScriptForLinux",
-        "typeHandlerVersion": "1.4",
+        "publisher": "Microsoft.Azure.Extensions",
+        "type": "CustomScript",
+        "typeHandlerVersion": "2.0",
+        "autoUpgradeMinorVersion": true,
         "settings": {
           "fileUris": [
             "[variables('installFrontendScriptUri')]"
-          ],
+          ]
         },
         "protectedSettings": {
           "commandToExecute": "[variables('installFrontendCommand')]"
@@ -517,18 +499,21 @@
         "count": "[parameters('webVMCount')]"
       }
     },
-
-
-
     {
       "type": "Microsoft.Compute/availabilitySets",
       "name": "[concat(variables('availabilitySetName'),'db')]",
-      "apiVersion": "[variables('apiVersion')]",
+      "apiVersion": "2017-12-01",
       "location": "[parameters('location')]",
-      "properties": {}
+      "sku": {
+        "name": "Aligned"
+          },
+        "properties": { 
+            "platformFaultDomainCount": 2,
+            "platformUpdateDomainCount": 5
+        }
     },
     {
-      "apiVersion": "[variables('apiVersion')]",
+      "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/publicIPAddresses",
       "name": "[variables('publicDBIPAddressName')]",
       "location": "[parameters('location')]",
@@ -540,7 +525,7 @@
       }
     },
     {
-      "apiVersion": "[variables('apiVersion')]",
+      "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/networkInterfaces",
       "name": "[concat(variables('nicName'),'db')]",
       "location": "[parameters('location')]",
@@ -566,12 +551,12 @@
       }
     },
     {
-      "apiVersion": "[variables('apiVersion')]",
+      "apiVersion": "2017-03-30",
       "type": "Microsoft.Compute/virtualMachines",
       "name": "[concat(variables('vmName'),'db')]",
       "location": "[parameters('location')]",
       "dependsOn": [
-        "[concat('Microsoft.Storage/storageAccounts/',parameters('newStorageAccountName'))]",
+        "[concat('Microsoft.Storage/storageAccounts/',variables('storageAccountName'))]",
         "[concat('Microsoft.Network/networkInterfaces/',variables('nicName'),'db')]",
         "[concat('Microsoft.Compute/availabilitySets/',variables('availabilitySetName'),'db')]"
       ],
@@ -583,7 +568,7 @@
           "vmSize": "[parameters('vmSizeDB')]"
         },
         "osProfile": {
-          "computername": "[concat(variables('vmName'),'db')]",
+          "computerName": "[concat(variables('vmName'),'db')]",
           "adminUsername": "[parameters('adminUsername')]",
           "adminPassword": "[parameters('adminPassword')]"
         },
@@ -595,10 +580,7 @@
             "version": "latest"
           },
           "osDisk": {
-            "name": "osdisk",
-            "vhd": {
-              "uri": "[concat('http://',parameters('newStorageAccountName'),'.blob.core.windows.net/',variables('vmStorageAccountContainerName'),'/',concat(variables('OSDiskName'),'db'),'.vhd')]"
-            },
+            "name": "[concat(variables('vmName'),'db','_OSDisk')]",
             "caching": "ReadWrite",
             "createOption": "FromImage"
           }
@@ -615,19 +597,20 @@
     {
       "type": "Microsoft.Compute/virtualMachines/extensions",
       "name": "[concat(concat(variables('vmName'),'db'),'/newuserscript')]",
-      "apiVersion": "[variables('apiVersion')]",
+      "apiVersion": "2015-06-15",
       "location": "[parameters('location')]",
       "dependsOn": [
         "[concat('Microsoft.Compute/virtualMachines/',concat(variables('vmName'),'db'))]"
       ],
       "properties": {
-        "publisher": "Microsoft.OSTCExtensions",
-        "type": "CustomScriptForLinux",
-        "typeHandlerVersion": "1.4",
+        "publisher": "Microsoft.Azure.Extensions",
+        "type": "CustomScript",
+        "typeHandlerVersion": "2.0",
+        "autoUpgradeMinorVersion": true,
         "settings": {
           "fileUris": [
             "[variables('installBackendScriptUri')]"
-          ],
+          ]
         },
         "protectedSettings": {
           "commandToExecute": "[variables('installBackendCommand')]"

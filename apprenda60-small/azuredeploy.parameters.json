@@ -1,30 +1,24 @@
 {
-  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
     "platformAdminFirstName": {
-      "value": ""
+      "value": "GEN-UNIQUE-8"
     },
     "platformAdminLastName": {
-      "value": ""
+      "value": "GEN-UNIQUE-8"
     },
     "platformAdminEmailAddress": {
-      "value": ""
+      "value": "GEN-UNIQUE-8"
     },
     "platformAdminPassword": {
-      "value": ""
-    },
-    "newStorageAccountName": {
-      "value": ""
+      "value": "GEN-PASSWORD"
     },
     "adminUsername": {
-      "value": ""
+      "value": "GEN-UNIQUE"
     },
     "adminPassword": {
-      "value": ""
-    },
-    "location": {
-      "value": ""
+      "value": "GEN-PASSWORD"
     },
     "storageAccountType": {
       "value": "Standard_LRS"
@@ -33,7 +27,7 @@
       "value": "Standard_A0"
     },
     "vmName": {
-      "value": "apprendaexpress60test"
+      "value": "GEN-UNIQUE-8"
     }
   }
 }

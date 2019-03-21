@@ -14,6 +14,7 @@ RPLPWD=${4}
 ROOTPWD=${5}
 PROBEPWD=${6}
 MASTERIP=${7}
+VERSION=5.5
 
 MOUNTPOINT="/datadrive"
 RAIDCHUNKSIZE=512
@@ -158,8 +159,10 @@ open_ports() {
 }
 
 disable_apparmor_ubuntu() {
+    /etc/init.d/apparmor stop
     /etc/init.d/apparmor teardown
     update-rc.d -f apparmor remove
+    apt-get remove apparmor apparmor-utils -y
 }
 
 disable_selinux_centos() {
@@ -182,10 +185,11 @@ create_mycnf() {
     wget "${MYCNFTEMPLATE}" -O /etc/my.cnf
     sed -i "s/^server_id=.*/server_id=${NODEID}/I" /etc/my.cnf
     sed -i "s/^report-host=.*/report-host=${NODEADDRESS}/I" /etc/my.cnf
+    sed -i "s/^bind-address.*/bind-address=0.0.0.0/I" /etc/mysql/my.cnf
 }
 
 install_mysql_ubuntu() {
-    dpkg -s mysql-5.6
+    dpkg -s mysql-$VERSION
     if [ ${?} -eq 0 ];
     then
         return
@@ -193,8 +197,13 @@ install_mysql_ubuntu() {
     echo "installing mysql"
     apt-get update
     export DEBIAN_FRONTEND=noninteractive
-    wget -O mysql-5.6.deb https://dev.mysql.com/get/Downloads/MySQL-5.6/mysql-server_5.6.26-1ubuntu15.04_amd64.deb
-    dpkg -i mysql-5.6.deb
+	apt-get install -y mysql-server-$VERSION
+	chown -R mysql:mysql "${MOUNTPOINT}/mysql/mysql"
+	apt-get install -y mysql-server-$VERSION
+	wget http://dev.mysql.com/get/Downloads/Connector-Python/mysql-connector-python_2.1.3-1ubuntu14.04_all.deb
+	dpkg -i mysql-connector-python_2.1.3-1ubuntu14.04_all.deb
+	wget http://dev.mysql.com/get/Downloads/MySQLGUITools/mysql-utilities_1.6.4-1ubuntu14.04_all.deb
+    dpkg -i mysql-utilities_1.6.4-1ubuntu14.04_all.deb
     apt-get -y install xinetd
 }
 
@@ -244,7 +253,7 @@ if [ "\$ERROR_MSG" != "" ]
 then
         # mysql is fine, return http 200
         echo -en "HTTP/1.1 200 OK\r\n"
-        echo -en "Content-Type: Content-Type: text/plain\r\n"
+        echo -en "Content-Type: text/plain\r\n"
         echo -en "Connection: close\r\n"
         echo -en "Content-Length: 19\r\n"
         echo -en "\r\n"
@@ -254,7 +263,7 @@ then
 else
         # mysql is down, return http 503
         echo -en "HTTP/1.1 503 Service Unavailable\r\n"
-        echo -en "Content-Type: Content-Type: text/plain\r\n"
+        echo -en "Content-Type: text/plain\r\n"
         echo -en "Connection: close\r\n"
         echo -en "Content-Length: 16\r\n"
         echo -en "\r\n"
@@ -334,7 +343,7 @@ configure_mysql() {
     fi
 
     create_mycnf
-    /etc/init.d/mysql start
+    /etc/init.d/mysql restart
     mysql_secret=$(awk '/password/{print $NF}' ${HOME}/.mysql_secret)
     mysqladmin -u root --password=${mysql_secret} password ${ROOTPWD}
 if [ ${NODEID} -eq 1 ];
@@ -360,8 +369,8 @@ else
     configure_network
     configure_disks
     configure_mysql
-	yum -y erase hypervkvpd.x86_64
-	yum -y install microsoft-hyper-v
+	#yum -y erase hypervkvpd.x86_64
+	#yum -y install microsoft-hyper-v
 #	echo "/sbin/reboot" | /usr/bin/at now + 3 min >/dev/null 2>&1
 fi
 

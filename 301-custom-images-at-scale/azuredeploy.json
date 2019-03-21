@@ -1,5 +1,5 @@
 {
-  "$schema": "http://schema.management.azure.com/schemas/2015-01-01-preview/deploymentTemplate.json",
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
   "contentVersion": "1.0.0.0",
   "parameters": {
     "uniquePrefix": {
@@ -18,7 +18,7 @@
         "Standard_D14"
       ],
       "metadata": {
-        "description": "Size of the VM used to transfer the VM image to various storage acounts."
+        "description": "Size of the VM used to transfer the VM image to various storage accounts."
       }
     },
     "computeVMSize": {
@@ -134,8 +134,6 @@
     "addressPrefix": "10.0.0.0/16",
     "subnetName": "subnet",
     "subnetPrefix": "10.0.0.0/21",
-    "storageAccountType": "Standard_LRS",
-    "location": "[resourceGroup().location]",
     "transferImagePublisher": "Canonical",
     "transferImageOffer": "UbuntuServer",
     "ubuntuOSVersion": "15.10",
@@ -145,7 +143,6 @@
     "templateLocation": "https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/301-custom-images-at-scale/",
 
     "sharedResourcesTemplateUri ": "[concat(variables('templateLocation'), 'shared-resources.json')]",
-    "uploadTemplateUri": "[concat(variables('templateLocation'), 'upload.json')]",
     "finalTemplateUri": "[concat(variables('templateLocation'), 'final_')]",
 
     "downloadTemplateURI": "[concat(variables('templateLocation'), 'download.json')]",
@@ -170,8 +167,7 @@
           "vnetName": { "value": "[variables('vnetName')]" },
           "addressPrefix": { "value": "[variables('addressPrefix')]" },
           "subnetName": { "value": "[variables('subnetName')]" },
-          "subnetPrefix": { "value": "[variables('subnetPrefix')]" },
-          "location": { "value": "[variables('location')]" }
+          "subnetPrefix": { "value": "[variables('subnetPrefix')]" }
         }
       }
     },
@@ -179,7 +175,7 @@
       "type": "Microsoft.Storage/storageAccounts",
       "name": "[concat('transfer', parameters('uniquePrefix'), 'sa')]",
       "apiVersion": "2015-05-01-preview",
-      "location": "[variables('location')]",
+      "location": "[resourceGroup().location]",
       "properties": {
         "accountType": "Standard_LRS"
       }
@@ -188,7 +184,7 @@
       "apiVersion": "2015-05-01-preview",
       "type": "Microsoft.Network/publicIPAddresses",
       "name": "[concat('transfer', parameters('uniquePrefix'), 'ip')]",
-      "location": "[variables('location')]",
+      "location": "[resourceGroup().location]",
       "properties": {
         "publicIPAllocationMethod": "Dynamic"
       }
@@ -197,7 +193,7 @@
       "apiVersion": "2015-05-01-preview",
       "type": "Microsoft.Network/networkInterfaces",
       "name": "[concat('transfer', parameters('uniquePrefix'), 'nic')]",
-      "location": "[variables('location')]",
+      "location": "[resourceGroup().location]",
       "dependsOn": [
         "[concat('Microsoft.Network/publicIPAddresses/transfer', parameters('uniquePrefix'), 'ip')]",
         "[concat('Microsoft.Resources/deployments/', parameters('uniquePrefix'), 'base')]"
@@ -223,7 +219,7 @@
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Compute/virtualMachines",
       "name": "[concat('transfer', parameters('uniquePrefix'), 'vm')]",
-      "location": "[variables('location')]",
+      "location": "[resourceGroup().location]",
       "dependsOn": [
         "[concat('Microsoft.Storage/storageAccounts/transfer', parameters('uniquePrefix'), 'sa')]",
         "[concat('Microsoft.Network/networkInterfaces/transfer', parameters('uniquePrefix'), 'nic')]"
@@ -233,7 +229,7 @@
           "vmSize": "[parameters('transferVMSize')]"
         },
         "osProfile": {
-          "computername": "[concat('transfer', parameters('uniquePrefix'), 'vm')]",
+          "computerName": "[concat('transfer', parameters('uniquePrefix'), 'vm')]",
           "adminUsername": "[parameters('adminUsername')]",
           "adminPassword": "[parameters('adminPassword')]"
         },
@@ -262,7 +258,7 @@
         },
         "diagnosticsProfile": {
           "bootDiagnostics": {
-            "enabled": "true",
+            "enabled": true,
             "storageUri": "[concat('http://transfer',parameters('uniquePrefix'),'sa.blob.core.windows.net')]"
           }
         }
@@ -282,7 +278,6 @@
           "contentVersion": "1.0.0.0"
         },
         "parameters": {
-          "location": { "value": "[variables('location')]" },
           "uniquePrefix": { "value": "[parameters('uniquePrefix')]" },
           "imageLocation": { "value": "[parameters('imageLocation')]" },
           "storageAccountKey": { "value": "[parameters('storageAccountKey')]" },
@@ -308,7 +303,6 @@
           "contentVersion": "1.0.0.0"
         },
         "parameters": {
-          "location": { "value": "[variables('location')]" },
           "uniquePrefix": { "value": "[parameters('uniquePrefix')]" },
           "index": { "value": "[copyIndex()]" },
           "uploadScriptURI": { "value": "[variables('uploadScriptURI')]" }
@@ -340,7 +334,6 @@
           "subnetName": { "value": "[variables('subnetName')]" },
           "subnetPrefix": { "value": "[variables('subnetPrefix')]" },
           "templateLocation": { "value": "[variables('templateLocation')]" },
-          "location": { "value": "[variables('location')]" },
           "adminUsername": { "value": "[parameters('adminUsername')]" },
           "adminPassword": { "value": "[parameters('adminPassword')]" }
         }

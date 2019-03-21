@@ -10,10 +10,10 @@
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -29,22 +29,24 @@
 # Description:
 #  This script automates the partitioning and formatting of data disks
 #  Data disks can be partitioned and formatted as seperate disks or in a RAID0 configuration
-#  The scrtip will scan for unpartitioined and unformatted data disks and partition, format, and add fstab entries
+#  The script will scan for unpartitioned and unformatted data disks and partition, format, and add fstab entries
 # Parameters :
 #  1 - b: The base directory for mount points (default: /datadisks)
 #  2 - s  Create a striped RAID0 Array (No redundancy)
-#  3 - h  Help 
-# Note : 
+#  3 - h  Help
+#  4 - o  Mount options for mount points
+# Note :
 # This script has only been tested on Ubuntu 12.04 LTS and must be root
 
 help()
 {
-    echo "Usage: $(basename $0) [-b data_base] [-h] [-s]"
+    echo "Usage: $(basename $0) [-b data_base] [-h] [-s] [-o mount_options]"
     echo ""
     echo "Options:"
     echo "   -b         base directory for mount points (default: /datadisks)"
     echo "   -h         this help message"
     echo "   -s         create a striped RAID array (no redundancy)"
+    echo "   -o         mount options for data disk"
 }
 
 log()
@@ -61,13 +63,14 @@ then
     exit 3
 fi
 
-#A set of disks to ignore from partitioning and formatting
-BLACKLIST="/dev/sda|/dev/sdb"
-
 # Base path for data disk mount points
 DATA_BASE="/datadisks"
+# Mount options for data disk
+MOUNT_OPTIONS="noatime,nodiratime,nodev,noexec,nosuid,nofail"
+# Determines wheter partition and format data disks as raid set or not
+RAID_CONFIGURATION=0
 
-while getopts b:sh optname; do
+while getopts b:sho: optname; do
     log "Option $optname set with value ${OPTARG}"
   case ${optname} in
     b)  #set clsuter name
@@ -75,6 +78,9 @@ while getopts b:sh optname; do
       ;;
     s) #Partition and format data disks as raid set
       RAID_CONFIGURATION=1
+      ;;
+    o) #mount option
+      MOUNT_OPTIONS=${OPTARG}
       ;;
     h)  #show help
       help
@@ -107,7 +113,7 @@ is_partitioned() {
         return 1
     else
         return 0
-    fi    
+    fi
 }
 
 has_filesystem() {
@@ -120,7 +126,7 @@ has_filesystem() {
 scan_for_new_disks() {
     # Looks for unpartitioned disks
     declare -a RET
-    DEVS=($(ls -1 /dev/sd*|egrep -v "${BLACKLIST}"|egrep -v "[0-9]$"))
+    DEVS=($(ls -1 /dev/sd*|egrep -v "[0-9]$"))
     for DEV in "${DEVS[@]}";
     do
         # The disk will be considered a candidate for partitioning
@@ -172,7 +178,7 @@ add_to_fstab() {
     then
         echo "Not adding ${UUID} to fstab again (it's already there!)"
     else
-        LINE="UUID=\"${UUID}\"\t${MOUNTPOINT}\text4\tnoatime,nodiratime,nodev,noexec,nosuid\t1 2"
+        LINE="UUID=\"${UUID}\"\t${MOUNTPOINT}\text4\t${MOUNT_OPTIONS}\t1 2"
         echo -e "${LINE}" >> /etc/fstab
     fi
 }
@@ -275,9 +281,10 @@ create_striped_volume()
 	    PARTITIONS+=("${PARTITION}")
 	done
 
-    MDDEVICE=$(get_next_md_device)    
-    
-	mdadm --create ${MDDEVICE} --level 0 --raid-devices ${#PARTITIONS[@]} ${PARTITIONS[*]}
+    MDDEVICE=$(get_next_md_device)
+	udevadm control --stop-exec-queue
+	mdadm --create ${MDDEVICE} --level 0 -c 64 --raid-devices ${#PARTITIONS[@]} ${PARTITIONS[*]}
+	udevadm control --start-exec-queue
 
 	MOUNTPOINT=$(get_next_mountpoint)
 	echo "Next mount point appears to be ${MOUNTPOINT}"
@@ -300,7 +307,7 @@ create_striped_volume()
 check_mdadm() {
     dpkg -s mdadm >/dev/null 2>&1
     if [ ${?} -ne 0 ]; then
-        apt-get -y update
+        (apt-get -y update || (sleep 15; apt-get -y update)) > /dev/null
         DEBIAN_FRONTEND=noninteractive apt-get -y install mdadm --fix-missing
     fi
 }

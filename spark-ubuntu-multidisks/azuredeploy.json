@@ -2,13 +2,6 @@
   "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "region": {
-      "type": "string",
-      "defaultValue": "West US",
-      "metadata": {
-        "description": "Location of the resource group and all contained resources"
-      }
-    },
     "storageAccountNamePrefix": {
       "type": "string",
       "metadata": {
@@ -48,7 +41,10 @@
       }
     },
     "sparkversion": {
-      "type": "string"
+      "type": "string",
+      "metadata": {
+        "description": "Version of Spark"
+      }
     },
     "jumpbox": {
       "type": "string",
@@ -66,6 +62,13 @@
       "defaultValue": "vnet",
       "metadata": {
         "description": "Virtual network name"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for all resources."
       }
     }
   },
@@ -155,7 +158,7 @@
       "imageReference": {
         "publisher": "Canonical",
         "offer": "UbuntuServer",
-        "sku": "14.04.2-LTS",
+        "sku": "14.04.5-LTS",
         "version": "latest"
       }
     },
@@ -196,9 +199,6 @@
           "storageSettings": {
             "value": "[variables('tshirtSize').storage]"
           },
-          "region": {
-            "value": "[parameters('region')]"
-          },
           "networkSettings": {
             "value": "[variables('networkSettings')]"
           },
@@ -236,7 +236,6 @@
           },
           "commonSettings": {
             "value": {
-              "region": "[parameters('region')]",
               "adminUsername": "[parameters('adminUsername')]",
               "namespace": "ms"
             }
@@ -290,7 +289,6 @@
           },
           "commonSettings": {
             "value": {
-              "region": "[parameters('region')]",
               "adminUsername": "[parameters('adminUsername')]",
               "namespace": "sl"
             }
@@ -340,7 +338,6 @@
           },
           "commonSettings": {
             "value": {
-              "region": "[parameters('region')]",
               "adminUsername": "[parameters('adminUsername')]",
               "namespace": "jumpbox"
             }
